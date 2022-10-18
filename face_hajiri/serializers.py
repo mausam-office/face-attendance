@@ -8,6 +8,12 @@ class RegistrationSerializer(serializers.ModelSerializer):
         fields = ['attendee_name', 'attendee_id', 'registration_device', 'department', 'image_base64', 'face_embedding']
 
 
+class UserDetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Registration
+        fields = ['attendee_name', 'attendee_id', 'registration_device', 'department', 'created_on']
+
+
 class FaceVerificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = FaceVerification

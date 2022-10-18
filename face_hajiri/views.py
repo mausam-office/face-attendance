@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Registration, Attendance
-from .serializers import RegistrationSerializer, FaceVerificationSerializer, AttendanceSerializer
+from .serializers import RegistrationSerializer, FaceVerificationSerializer, AttendanceSerializer, UserDetailsSerializer
 from django.http import QueryDict
 
 import io
@@ -27,14 +27,16 @@ def base64_img(img_str):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return image
 
+
 def img_preprocessing(img_str):
     image = base64_img(img_str)
     # cv2.imwrite('temp.jpg', image)
     # print(type(image), image.shape)
     return gen_encoding([image])
 
+
 def get_user_data():
-    reg = Registration.objects.all()#filter(attendee_id='f0b67154-4bb7-11ed-bdc3-0242ac120002')
+    reg = Registration.objects.all()
     reg_serializer = RegistrationSerializer(reg, many=True)
     stored_encodings = []
     attendee_names = []
@@ -48,6 +50,7 @@ def get_user_data():
         attendee_ids.append(attendee_id)
     return stored_encodings, attendee_names, attendee_ids
 
+
 def construct_dict(name, id, device, current_time, state):
     query_dict = QueryDict('', mutable=True)
     if state == 'in':
@@ -60,7 +63,6 @@ def construct_dict(name, id, device, current_time, state):
         query_dict.update(data)
         return query_dict
     else:
-        print("None of either states")
         return query_dict
 
 
@@ -73,6 +75,7 @@ def store_in_time(name, id, device, current_time, state):
             serializer_attendance.save()
         else:
             print('attendance serializer is invalid in else-else')
+
 
 class RegistrationView(APIView):
     def post(self, request):
@@ -110,10 +113,9 @@ class RegistrationView(APIView):
 
         serializer = RegistrationSerializer(data=query_dict)
         if serializer.is_valid():
-            print("Valid")
             serializer.save()
             stored_encodings, attendee_names, attendee_ids = get_user_data()
-            return Response(serializer.data)
+            return Response({'Acknowledge':'Done'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -166,7 +168,6 @@ class VerificationView(APIView):
                             row.out_time = current_time
                             row.save()
                         elif isinstance(row.in_time, datetime):
-                            print('Here')
                             store_in_time(name, id, serializer_data['device'], current_time, state='in')
                            
                     else:
@@ -178,9 +179,15 @@ class VerificationView(APIView):
             #         cv2.putText(image, name, (x1+6, y2-6), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 1)
             # cv2.imwrite('detections/detection.jpg', image)            
 
-            return Response({'recognized':recognized_faces})
+            return Response({'Acknowledge':recognized_faces})
         return Response({'Acknowledge':'error'})
 
 
+class UserDetailsView(APIView):
+    def get(self, request):
+        reg_data = Registration.objects.all()#.distinct()       # distinct changes sequential order
+        reg_data = UserDetailsSerializer(reg_data, many=True)
 
-
+        return Response({'Acknowledge': reg_data.data})
+        
+        
